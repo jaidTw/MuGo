@@ -84,6 +84,21 @@ class GtpInterface(object):
     def suggest_move(self, position):
         raise NotImplementedError
 
+    def showboard(self):
+        output = "\n   A B C D E F G H I J K L M N O P Q R S T\n"
+        for row in reversed(range(1, 20)):
+            output += '%2d ' % row
+            for c in self.position.board[19 - row]:
+                if c == 1:
+                    output += 'X' + ' '
+                elif c == -1:
+                    output += 'O' + ' '
+                else:
+                    output += '.' + ' '
+            output += str(row) + '\n'
+        output += "   A B C D E F G H I J K L M N O P Q R S T\n"
+        return output
+
 class RandomPlayer(GtpInterface):
     def suggest_move(self, position):
         possible_moves = go.ALL_COORDS[:]
