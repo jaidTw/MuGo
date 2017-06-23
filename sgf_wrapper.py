@@ -15,7 +15,7 @@ from go import Position
 from utils import parse_sgf_coords as pc
 import sgf
 
-class GameMetadata(namedtuple("GameMetadata", "result handicap board_size")):
+class GameMetadata(namedtuple("GameMetadata", "result board_size")):
     pass
 
 class PositionWithContext(namedtuple("SgfPosition", "position next_move metadata")):
@@ -28,7 +28,6 @@ class PositionWithContext(namedtuple("SgfPosition", "position next_move metadata
             self.position is not None,
             self.next_move is not None,
             self.metadata.result != "Void",
-            self.metadata.handicap <= 4,
         ])
 
     def __str__(self):
@@ -67,7 +66,7 @@ def add_stones(pos, black_stones_added, white_stones_added):
     working_board = np.copy(pos.board)
     go.place_stones(working_board, go.BLACK, black_stones_added)
     go.place_stones(working_board, go.WHITE, white_stones_added)
-    new_position = Position(board=working_board, n=pos.n, komi=pos.komi, caps=pos.caps, ko=pos.ko, recent=pos.recent, to_play=pos.to_play)
+    new_position = Position(board=working_board, n=pos.n, caps=pos.caps, ko=pos.ko, recent=pos.recent, to_play=pos.to_play)
     return new_position
 
 def get_next_move(node):
@@ -98,16 +97,13 @@ def replay_sgf(sgf_contents):
     props = game.root.properties
     assert int(sgf_prop(props.get('GM', ['1']))) == 1, "Not a Go SGF!"
 
-    komi = 0
     if props.get('KM') != None:
-        komi = float(sgf_prop(props.get('KM')))
     metadata = GameMetadata(
         result=sgf_prop(props.get('RE')),
-        handicap=int(sgf_prop(props.get('HA', [0]))),
         board_size=int(sgf_prop(props.get('SZ'))))
     go.set_board_size(metadata.board_size)
 
-    pos = Position(komi=komi)
+    pos = Position()
     current_node = game.root
     while pos is not None and current_node is not None:
         pos = handle_node(pos, current_node)
@@ -127,12 +123,11 @@ def replay_position(position):
     assert position.n == len(position.recent), "Position history is incomplete"
     metadata = GameMetadata(
         result=position.result(),
-        handicap=0,
         board_size=position.board.shape[0]
     )
     go.set_board_size(metadata.board_size)
 
-    pos = Position(komi=position.komi)
+    pos = Position()
     for player_move in position.recent:
         color, next_move = player_move
         yield PositionWithContext(pos, next_move, metadata)

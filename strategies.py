@@ -21,7 +21,7 @@ def translate_gtp_colors(gtp_color):
         return go.EMPTY
 
 def is_move_reasonable(position, move):
-    return position.is_move_legal(move) and go.is_eyeish(position.board, move) != position.to_play
+    return position.is_move_legal(move)
 
 def select_most_likely(position, move_probabilities):
     for move in sorted_moves(move_probabilities):
