@@ -6,7 +6,7 @@ import struct
 import sys
 
 from features import bulk_extract_features
-import go
+import gomoku
 from sgf_wrapper import replay_sgf
 import utils
 
@@ -29,7 +29,7 @@ def iter_chunks(chunk_size, iterator):
 
 def make_onehot(coords):
     num_positions = len(coords)
-    output = np.zeros([num_positions, go.N ** 2], dtype=np.uint8)
+    output = np.zeros([num_positions, gomoku.N ** 2], dtype=np.uint8)
     for i, coord in enumerate(coords):
         output[i, utils.flatten_coords(coord)] = 1
     return output

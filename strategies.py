@@ -5,20 +5,20 @@ import time
 import numpy as np
 import gtp
 
-import go
+import gomoku
 import utils
 
 def sorted_moves(probability_array):
-    coords = [(a, b) for a in range(go.N) for b in range(go.N)]
+    coords = [(a, b) for a in range(gomoku.N) for b in range(gomoku.N)]
     return sorted(coords, key=lambda c: probability_array[c], reverse=True)
 
 def translate_gtp_colors(gtp_color):
     if gtp_color == gtp.BLACK:
-        return go.BLACK
+        return gomoku.BLACK
     elif gtp_color == gtp.WHITE:
-        return go.WHITE
+        return gomoku.WHITE
     else:
-        return go.EMPTY
+        return gomoku.EMPTY
 
 def is_move_reasonable(position, move):
     return position.is_move_legal(move)
@@ -56,7 +56,7 @@ class GtpInterface(object):
 
     def set_size(self, n):
         self.size = n
-        go.set_board_size(n)
+        gomoku.set_board_size(n)
         self.clear()
 
     def set_komi(self, komi):
@@ -64,7 +64,7 @@ class GtpInterface(object):
         self.position.komi = komi
 
     def clear(self):
-        self.position = go.Position(komi=self.komi)
+        self.position = gomoku.Position(komi=self.komi)
 
     def accomodate_out_of_turn(self, color):
         if not translate_gtp_colors(color) == self.position.to_play:
@@ -101,7 +101,7 @@ class GtpInterface(object):
 
 class RandomPlayer(GtpInterface):
     def suggest_move(self, position):
-        possible_moves = go.ALL_COORDS[:]
+        possible_moves = gomoku.ALL_COORDS[:]
         random.shuffle(possible_moves)
         for move in possible_moves:
             if is_move_reasonable(position, move):
@@ -228,7 +228,7 @@ class MCTS(GtpInterface):
     def __init__(self, policy_network, read_file, seconds_per_move=5):
         self.policy_network = policy_network
         self.seconds_per_move = seconds_per_move
-        self.max_rollout_depth = go.N * go.N * 3
+        self.max_rollout_depth = gomoku.N * gomoku.N * 3
         self.read_file = read_file
         super().__init__()
 
@@ -261,7 +261,7 @@ class MCTS(GtpInterface):
         position = chosen_leaf.compute_position()
         if position is None:
             print("illegal move!", file=sys.stderr)
-            # See go.Position.play_move for notes on detecting legality
+            # See gomoku.Position.play_move for notes on detecting legality
             del chosen_leaf.parent.children[chosen_leaf.move]
             return
         print("Investigating following position:\n%s" % (chosen_leaf.position,), file=sys.stderr)
@@ -291,11 +291,11 @@ class MCTS(GtpInterface):
 
     def play_valid_move(self, position, move_probs):
         for move in sorted_moves(move_probs):
-            if go.is_eyeish(position.board, move):
+            if gomoku.is_eyeish(position.board, move):
                 continue
             try:
                 candidate_pos = position.play_move(move, mutate=True)
-            except go.IllegalMove:
+            except gomoku.IllegalMove:
                 continue
             else:
                 return candidate_pos

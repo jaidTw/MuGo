@@ -26,7 +26,7 @@ import sys
 import tensorflow as tf
 
 import features
-import go
+import gomoku
 import utils
 
 EPSILON = 1e-35
@@ -51,8 +51,8 @@ class PolicyNetwork(object):
     def set_up_network(self):
         # a global_step variable allows epoch counts to persist through multiple training sessions
         global_step = tf.Variable(0, name="global_step", trainable=False)
-        x = tf.placeholder(tf.float32, [None, go.N, go.N, self.num_input_planes])
-        y = tf.placeholder(tf.float32, shape=[None, go.N ** 2])
+        x = tf.placeholder(tf.float32, [None, gomoku.N, gomoku.N, self.num_input_planes])
+        y = tf.placeholder(tf.float32, shape=[None, gomoku.N ** 2])
 
         #convenience functions for initializing weights and biases
         def _weight_variable(shape, name):
@@ -81,11 +81,11 @@ class PolicyNetwork(object):
                 _current_h_conv = h_conv_intermediate[-1]
 
         W_conv_final = _weight_variable([1, 1, self.k, 1], name="W_conv_final")
-        b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
+        b_conv_final = tf.Variable(tf.constant(0, shape=[gomoku.N ** 2], dtype=tf.float32), name="b_conv_final")
         h_conv_final = _conv2d(h_conv_intermediate[-1], W_conv_final)
 
         # Add epsilon to avoid taking the log of 0 in following step
-        output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final) + tf.constant(EPSILON)
+        output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, gomoku.N ** 2]) + b_conv_final) + tf.constant(EPSILON)
 
         log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.multiply(tf.log(output), y), reduction_indices=[1]))
 
@@ -154,7 +154,7 @@ class PolicyNetwork(object):
         'Return a sorted list of (probability, move) tuples'
         processed_position = features.extract_features(position, features=self.features)
         probabilities = self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
-        return probabilities.reshape([go.N, go.N])
+        return probabilities.reshape([gomoku.N, gomoku.N])
 
     def check_accuracy(self, test_data, batch_size=128):
         num_minibatches = test_data.data_size // batch_size

@@ -19,7 +19,7 @@ only if the feature was equal to i. Any features >= 8 would be marked as 8.
 '''
 
 import numpy as np
-import go
+import gomoku
 from utils import product
 
 # Resolution/truncation limit for one-hot features
@@ -46,24 +46,24 @@ def planes(num_planes):
 @planes(3)
 def stone_color_feature(position):
     board = position.board
-    features = np.zeros([go.N, go.N, 3], dtype=np.uint8)
-    if position.to_play == go.BLACK:
-        features[board == go.BLACK, 0] = 1
-        features[board == go.WHITE, 1] = 1
+    features = np.zeros([gomoku.N, gomoku.N, 3], dtype=np.uint8)
+    if position.to_play == gomoku.BLACK:
+        features[board == gomoku.BLACK, 0] = 1
+        features[board == gomoku.WHITE, 1] = 1
     else:
-        features[board == go.WHITE, 0] = 1
-        features[board == go.BLACK, 1] = 1
+        features[board == gomoku.WHITE, 0] = 1
+        features[board == gomoku.BLACK, 1] = 1
 
-    features[board == go.EMPTY, 2] = 1
+    features[board == gomoku.EMPTY, 2] = 1
     return features
 
 @planes(1)
 def ones_feature(position):
-    return np.ones([go.N, go.N, 1], dtype=np.uint8)
+    return np.ones([gomoku.N, gomoku.N, 1], dtype=np.uint8)
 
 @planes(P)
 def recent_move_feature(position):
-    onehot_features = np.zeros([go.N, go.N, P], dtype=np.uint8)
+    onehot_features = np.zeros([gomoku.N, gomoku.N, P], dtype=np.uint8)
     for i, player_move in enumerate(reversed(position.recent[-P:])):
         _, move = player_move # unpack the info from position.recent
         if move is not None:
@@ -74,24 +74,24 @@ def recent_move_feature(position):
 def liberty_feature(position):
     return make_onehot(position.get_liberties(), P)
 
-@planes(P)
-def would_capture_feature(position):
-    features = np.zeros([go.N, go.N], dtype=np.uint8)
-    for g in position.lib_tracker.groups.values():
-        if g.color == position.to_play:
-            continue
-        if len(g.liberties) == 1:
-            last_lib = list(g.liberties)[0]
-            # += because the same spot may capture more than 1 group.
-            features[last_lib] += len(g.stones)
-    return make_onehot(features, P)
+#@planes(P)
+#def would_capture_feature(position):
+#    features = np.zeros([gomoku.N, gomoku.N], dtype=np.uint8)
+#    for g in position.lib_tracker.groups.values():
+#        if g.color == position.to_play:
+#            continue
+#        if len(g.liberties) == 1:
+#            last_lib = list(g.liberties)[0]
+#            # += because the same spot may capture more than 1 group.
+#            features[last_lib] += len(g.stones)
+#    return make_onehot(features, P)
 
 DEFAULT_FEATURES = [
     stone_color_feature,
     ones_feature,
     liberty_feature,
     recent_move_feature,
-    would_capture_feature,
+#    would_capture_feature,
 ]
 
 def extract_features(position, features=DEFAULT_FEATURES):
@@ -100,7 +100,7 @@ def extract_features(position, features=DEFAULT_FEATURES):
 def bulk_extract_features(positions, features=DEFAULT_FEATURES):
     num_positions = len(positions)
     num_planes = sum(f.planes for f in features)
-    output = np.zeros([num_positions, go.N, go.N, num_planes], dtype=np.uint8)
+    output = np.zeros([num_positions, gomoku.N, gomoku.N, num_planes], dtype=np.uint8)
     for i, pos in enumerate(positions):
         output[i] = extract_features(pos, features=features)
     return output
