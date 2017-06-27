@@ -2,3 +2,6 @@ lib
 bin
 data
 processed_data
+__pycache__
+log
+*.pyc

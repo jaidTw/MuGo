@@ -65,32 +65,6 @@ def find_reached(board, c):
                 reached.add(n)
     return chain, reached
 
-def is_koish(board, c):
-    'Check if c is surrounded on all sides by 1 color, and return that color'
-    if board[c] != EMPTY: return None
-    neighbors = {board[n] for n in NEIGHBORS[c]}
-    if len(neighbors) == 1 and not EMPTY in neighbors:
-        return list(neighbors)[0]
-    else:
-        return None
-
-def is_eyeish(board, c):
-    'Check if c is an eye, for the purpose of restricting MC rollouts.'
-    color = is_koish(board, c)
-    if color is None:
-        return None
-    diagonal_faults = 0
-    diagonals = DIAGONALS[c]
-    if len(diagonals) < 4:
-        diagonal_faults += 1
-    for d in diagonals:
-        if not board[d] in (color, EMPTY):
-            diagonal_faults += 1
-    if diagonal_faults > 1:
-        return None
-    else:
-        return color
-
 class Group(namedtuple('Group', ['id', 'stones', 'liberties', 'color'])):
     '''
     stones: a set of Coordinates belonging to this group
@@ -238,7 +212,6 @@ class Position():
         komi: a float, representing points given to the second player.
         caps: a (int, int) tuple of captures for B, W.
         lib_tracker: a LibertyTracker object
-        ko: a Move
         recent: a tuple of PlayerMoves, such that recent[-1] is the last move.
         to_play: BLACK or WHITE
         '''
@@ -283,32 +256,12 @@ class Position():
         details = "\nMove: {}. Captures X: {} O: {}\n".format(self.n, *captures)
         return annotated_board + details
 
-    def is_move_suicidal(self, move):
-        potential_libs = set()
-        for n in NEIGHBORS[move]:
-            neighbor_group_id = self.lib_tracker.group_index[n]
-            if neighbor_group_id == MISSING_GROUP_ID:
-                # at least one liberty after playing here, so not a suicide
-                return False
-            neighbor_group = self.lib_tracker.groups[neighbor_group_id]
-            if neighbor_group.color == self.to_play:
-                potential_libs |= neighbor_group.liberties
-            elif len(neighbor_group.liberties) == 1:
-                # would capture an opponent group if they only had one lib.
-                return False
-        # it's possible to suicide by connecting several friendly groups
-        # each of which had one liberty.
-        potential_libs -= set([move])
-        return not potential_libs
-
     def is_move_legal(self, move):
-        'Checks that a move is on an empty space, not on ko, and not suicide'
+        'Checks that a move is on an empty space'
         if move is None:
             return True
         if self.board[move] != EMPTY:
             return False
-#        if self.is_move_suicidal(move):
-#            return False
 
         return True
 
@@ -347,24 +300,9 @@ class Position():
             raise IllegalMove()
 
         place_stones(pos.board, color, [c])
-        captured_stones = pos.lib_tracker.add_stone(color, c)
-        place_stones(pos.board, EMPTY, captured_stones)
-
         opp_color = color * -1
 
-        if len(captured_stones) == 1 and is_koish(self.board, c) == opp_color:
-            new_ko = list(captured_stones)[0]
-        else:
-            new_ko = None
-
-        if pos.to_play == BLACK:
-            new_caps = (pos.caps[0] + len(captured_stones), pos.caps[1])
-        else:
-            new_caps = (pos.caps[0], pos.caps[1] + len(captured_stones))
-
         pos.n += 1
-        pos.caps = new_caps
-        pos.ko = new_ko
         pos.recent += (PlayerMove(color, c),)
         pos.to_play *= -1
         return pos
@@ -386,7 +324,7 @@ class Position():
                 territory_color = UNKNOWN # dame, or seki
             place_stones(working_board, territory_color, territory)
 
-        return np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE) - self.komi
+        return np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE)
 
     def result(self):
         score = self.score()

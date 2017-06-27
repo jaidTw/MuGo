@@ -4,6 +4,7 @@ import sys
 import time
 import numpy as np
 import gtp
+import copy
 
 import gomoku
 import utils
@@ -85,7 +86,7 @@ class GtpInterface(object):
         raise NotImplementedError
 
     def showboard(self):
-        output = "\n   A B C D E F G H I J K L M N O P Q R S T\n"
+        output = "\n   A B C D E F G H J K L M N O P Q R S T\n"
         for row in reversed(range(1, 20)):
             output += '%2d ' % row
             for c in self.position.board[19 - row]:
@@ -96,7 +97,7 @@ class GtpInterface(object):
                 else:
                     output += '.' + ' '
             output += str(row) + '\n'
-        output += "   A B C D E F G H I J K L M N O P Q R S T\n"
+        output += "   A B C D E F G H J K L M N O P Q R S T\n"
         return output
 
 class RandomPlayer(GtpInterface):
@@ -291,8 +292,6 @@ class MCTS(GtpInterface):
 
     def play_valid_move(self, position, move_probs):
         for move in sorted_moves(move_probs):
-            if gomoku.is_eyeish(position.board, move):
-                continue
             try:
                 candidate_pos = position.play_move(move, mutate=True)
             except gomoku.IllegalMove:
